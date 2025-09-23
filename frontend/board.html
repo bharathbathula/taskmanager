@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow Pro - Boards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/board.css" />
+  </head>
+  <body
+    class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white"
+  >
+    <!-- Navbar -->
+    <nav
+      class="bg-white/10 backdrop-blur-xl p-4 flex justify-between items-center shadow-lg"
+    >
+      <h1 class="text-2xl font-bold text-purple-200">TaskFlow Pro</h1>
+      <div class="flex items-center space-x-6">
+        <button id="dashboardBtn" class="hover:underline">Dashboard</button>
+        <button id="boardsBtn" class="hover:underline">Boards</button>
+        <button id="tasksBtn" class="hover:underline">Tasks</button>
+        <span id="userEmail">Welcome, User</span>
+        <button
+          id="logoutBtn"
+          class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 transition"
+        >
+          Logout
+        </button>
+      </div>
+    </nav>
+
+    <div class="p-6">
+      <!-- Boards Section -->
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Boards</h2>
+        <button
+          id="addBoardBtn"
+          class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition"
+        >
+          + Add Board
+        </button>
+      </div>
+      <div id="boardsContainer" class="space-y-4">
+        <!-- Boards will be rendered here -->
+      </div>
+    </div>
+
+    <!-- Board Modal -->
+    <div
+      id="boardModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center hidden"
+    >
+      <div class="bg-white/10 backdrop-blur-xl p-6 rounded-2xl w-96 shadow-xl">
+        <h3 class="text-lg font-semibold mb-4 text-white" id="boardModalTitle">
+          Add Board
+        </h3>
+
+        <!-- Title -->
+        <input
+          type="text"
+          id="boardNameInput"
+          placeholder="Board Title"
+          class="w-full px-4 py-2 rounded-xl bg-white/5 text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"
+        />
+
+        <!-- Description -->
+        <textarea
+          id="boardDescInput"
+          placeholder="Board Description"
+          rows="3"
+          class="w-full px-4 py-2 rounded-xl bg-white/5 text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+        ></textarea>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-2">
+          <button
+            id="boardModalCancel"
+            class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition"
+          >
+            Cancel
+          </button>
+          <button
+            id="boardModalSave"
+            class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/board.js"></script>
+  </body>
+</html>

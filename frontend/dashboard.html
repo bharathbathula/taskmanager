@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow Pro - Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <style>
+      /* Override styles to match board.html colors while keeping structure */
+      body {
+        background: linear-gradient(to bottom right, #0f172a, #581c87, #0f172a);
+        color: white;
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      /* Sidebar - thick/dark background */
+      aside {
+        background: rgba(41, 41, 67, 0.95);
+        backdrop-filter: blur(16px);
+        border-right: 1px solid rgba(147, 51, 234, 0.3);
+      }
+
+      /* Main content area - lighter background */
+      main {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(8px);
+      }
+
+      /* Sidebar text colors */
+      aside h1 {
+        color: #c4b5fd;
+      }
+
+      aside p {
+        color: #a78bfa;
+      }
+
+      aside a {
+        color: #e2e8f0;
+      }
+
+      aside a:hover {
+        color: #c4b5fd;
+      }
+
+      /* Button styling */
+      #logoutBtn {
+        background: #7c3aed;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      #logoutBtn:hover {
+        background: #6d28d9;
+      }
+
+      /* Topbar styling */
+      .topbar {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(147, 51, 234, 0.2);
+      }
+
+      .topbar h2 {
+        color: white;
+      }
+
+      #userEmail {
+        color: #c4b5fd;
+      }
+
+      /* Section headings */
+      .boards-section h3,
+      .tasks-section h3 {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <aside>
+      <div class="sidebar-header">
+        <h1>TaskFlow Pro</h1>
+        <p>Enterprise Task Management</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="board.html">Boards</a>
+      </nav>
+      <button id="logoutBtn">Logout</button>
+    </aside>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2>Dashboard</h2>
+        <span id="userEmail"> Welcome, User </span>
+      </div>
+
+      <!-- Boards Section -->
+      <section class="boards-section">
+        <h3>Boards</h3>
+        <div id="boards"></div>
+      </section>
+
+      <!-- Tasks Section -->
+      <section class="tasks-section">
+        <h3>Tasks</h3>
+        <div id="tasks"></div>
+      </section>
+    </main>
+
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>
