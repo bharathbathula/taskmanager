@@ -39,4 +39,4 @@ class Task(Base):
     due_date = Column(DateTime , nullable =True)
     created_at = Column(TIMESTAMP(timezone=True) , nullable=False , server_default = text('now()'))
     board_id = Column(Integer , ForeignKey('boards.id' , ondelete='CASCADE') , nullable=False)
-    tags = Column(String, nullable=True, default="")
+    

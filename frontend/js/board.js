@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("token");
-      window.location.href = "/"; // points to index.html
+      window.location.href = "index.html"; // points to index.html
     });
   }
 });

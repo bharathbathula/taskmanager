@@ -26,13 +26,13 @@ const currentBoardId = urlParams.get("boardId");
 // Check if user is logged in
 if (!token) {
   alert("No authentication token found. Please login.");
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 
 // Logout
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("token");
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 });
 
 // Decode JWT
