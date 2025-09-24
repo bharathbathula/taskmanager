@@ -24,9 +24,12 @@ async function fetchUser() {
   const payload = parseJwt(token);
   if (!payload?.user_id) return;
   try {
-    const res = await fetch(`http://localhost:8000/users/${payload.user_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `https://taskmanager-tj4l.onrender.com/users/${payload.user_id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     const data = await res.json();
     userEmail.textContent = `Welcome, ${
       data.name || data.username || data.email || "User"
@@ -39,7 +42,7 @@ async function fetchUser() {
 
 async function fetchBoards() {
   try {
-    const res = await fetch("http://localhost:8000/boards", {
+    const res = await fetch("https://taskmanager-tj4l.onrender.com/boards", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const boards = await res.json();
@@ -66,9 +69,12 @@ async function fetchBoards() {
 
 async function fetchTasks(boardId) {
   try {
-    const res = await fetch(`http://localhost:8000/boards/${boardId}/tasks`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `https://taskmanager-tj4l.onrender.com/boards/${boardId}/tasks`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     const tasks = await res.json();
     if (!tasks.length) {
       tasksContainer.innerHTML =

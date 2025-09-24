@@ -45,9 +45,12 @@ async function fetchUser() {
   if (!payload || !payload.user_id) return;
 
   try {
-    const res = await fetch(`http://localhost:8000/users/${payload.user_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `https://taskmanager-tj4l.onrender.com/users/${payload.user_id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     if (!res.ok) throw new Error("Failed to fetch user info");
 
@@ -62,7 +65,7 @@ async function fetchUser() {
 // Fetch boards
 async function fetchBoards() {
   try {
-    const res = await fetch("http://localhost:8000/boards", {
+    const res = await fetch("https://taskmanager-tj4l.onrender.com/boards", {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("Failed to fetch boards");
@@ -128,10 +131,13 @@ function renderBoards(boards) {
       e.stopPropagation();
       if (confirm(`Delete board "${board.title}"?`)) {
         try {
-          await fetch(`http://localhost:8000/boards/${board.id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          await fetch(
+            `https://taskmanager-tj4l.onrender.com/boards/${board.id}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           fetchBoards();
         } catch (err) {
           console.error(err);
@@ -166,17 +172,20 @@ boardModalSave.addEventListener("click", async () => {
   try {
     if (editingBoardId) {
       // Update board
-      await fetch(`http://localhost:8000/boards/${editingBoardId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, description }),
-      });
+      await fetch(
+        `https://taskmanager-tj4l.onrender.com/boards/${editingBoardId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title, description }),
+        }
+      );
     } else {
       // Create board
-      await fetch("http://localhost:8000/boards", {
+      await fetch("https://taskmanager-tj4l.onrender.com/boards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

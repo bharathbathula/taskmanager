@@ -65,7 +65,7 @@ loginForm.addEventListener("submit", async (e) => {
     formData.append("username", email);
     formData.append("password", password);
 
-    const res = await fetch("http://localhost:8000/login", {
+    const res = await fetch("https://taskmanager-tj4l.onrender.com/login", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData,
@@ -108,7 +108,7 @@ registerForm.addEventListener("submit", async (e) => {
     btn.disabled = true;
     spinner.classList.remove("hidden");
 
-    const res = await fetch("http://localhost:8000/users", {
+    const res = await fetch("https://taskmanager-tj4l.onrender.com/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),

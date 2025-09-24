@@ -52,9 +52,12 @@ async function fetchUser() {
   if (!payload || !payload.user_id) return;
 
   try {
-    const res = await fetch(`http://localhost:8000/users/${payload.user_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `https://taskmanager-tj4l.onrender.com/users/${payload.user_id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     if (!res.ok) return;
     const data = await res.json();
     userEmail.textContent = `Welcome, ${data.name || data.email || "User"}`;
@@ -66,7 +69,7 @@ async function fetchUser() {
 // Fetch all boards for task dropdown
 async function fetchBoards() {
   try {
-    const res = await fetch("http://localhost:8000/boards", {
+    const res = await fetch("https://taskmanager-tj4l.onrender.com/boards", {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("Failed to fetch boards");
@@ -94,9 +97,12 @@ async function fetchBoards() {
 async function fetchTasks(boardId) {
   if (!boardId) return;
   try {
-    const res = await fetch(`http://localhost:8000/boards/${boardId}/tasks/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `https://taskmanager-tj4l.onrender.com/boards/${boardId}/tasks/`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     if (!res.ok) throw new Error("Failed to fetch tasks");
     const tasks = await res.json();
     renderTasks(tasks, boardId);
@@ -169,7 +175,7 @@ function renderTasks(tasks, boardId) {
       if (confirm(`Delete task "${task.title}"?`)) {
         try {
           await fetch(
-            `http://localhost:8000/boards/${boardId}/tasks/${task.id}/`,
+            `https://taskmanager-tj4l.onrender.com/boards/${boardId}/tasks/${task.id}/`,
             {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
@@ -221,7 +227,7 @@ taskModalSave.addEventListener("click", async () => {
 
     if (editingTaskId) {
       res = await fetch(
-        `http://localhost:8000/boards/${boardId}/tasks/${editingTaskId}/`,
+        `https://taskmanager-tj4l.onrender.com/boards/${boardId}/tasks/${editingTaskId}/`,
         {
           method: "PUT",
           headers: {
@@ -232,14 +238,17 @@ taskModalSave.addEventListener("click", async () => {
         }
       );
     } else {
-      res = await fetch(`http://localhost:8000/boards/${boardId}/tasks/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(taskData),
-      });
+      res = await fetch(
+        `https://taskmanager-tj4l.onrender.com/boards/${boardId}/tasks/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(taskData),
+        }
+      );
     }
 
     if (res.ok) {
