@@ -13,7 +13,7 @@ app  = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500"],  # allow your frontend url
+    allow_origins=["http://127.0.0.1:5500", "https://taskmanager-o1tb.onrender.com"],  # allow your frontend url
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
