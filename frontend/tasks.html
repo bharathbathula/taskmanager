@@ -3,132 +3,357 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TaskFlow Pro - Tasks</title>
+    <title>TaskFlow Pro - Tasks Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <link rel="stylesheet" href="css/tasks.css" />
   </head>
-  <body
-    class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white"
-  >
-    <!-- Navbar -->
-    <nav
-      class="bg-white/10 backdrop-blur-xl p-4 flex justify-between items-center shadow-lg"
-    >
-      <h1 class="text-2xl font-bold text-purple-200">TaskFlow Pro</h1>
-      <div class="flex items-center space-x-4">
-        <span id="userEmail">Welcome, User</span>
-        <button
-          id="logoutBtn"
-          class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 transition"
-        >
-          Logout
-        </button>
+  <body>
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="app-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <h1>TaskFlow Pro</h1>
+        <p>Task Management System</p>
       </div>
+
+      <div class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="boards.html" class="nav-item">
+          <i class="fas fa-columns"></i>
+          <span>Boards</span>
+        </a>
+        <a href="tasks.html" class="nav-item active">
+          <i class="fas fa-list-check"></i>
+          <span>Tasks</span>
+        </a>
+      </div>
+
+      <button class="logout-btn" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Logout</span>
+      </button>
     </nav>
 
-    <div class="p-6">
-      <!-- Navigation Buttons -->
-      <div class="flex space-x-4 mb-6">
-        <a
-          href="dashboard.html"
-          class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition"
-          >Dashboard</a
-        >
-        <a
-          href="board.html"
-          class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition"
-          >Boards</a
-        >
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div>
+          <h2><i class="fas fa-list-check"></i> Tasks Management</h2>
+          <p class="text-secondary">Manage and track all your tasks</p>
+        </div>
+        <div class="user-info">
+          <i class="fas fa-user-circle"></i>
+          <span id="userEmail">Welcome, User</span>
+        </div>
       </div>
 
-      <!-- Tasks Section -->
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">Tasks</h2>
-        <button
-          id="addTaskBtn"
-          class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition"
-        >
-          + Add Task
-        </button>
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-list"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalTasks">0</h3>
+            <p>Total Tasks</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="pendingTasks">0</h3>
+            <p>Pending Tasks</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-spinner"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="inProgressTasks">0</h3>
+            <p>In Progress</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="completedTasks">0</h3>
+            <p>Completed</p>
+          </div>
+        </div>
       </div>
-      <div id="tasksContainer" class="space-y-4"></div>
-    </div>
 
-    <!-- Task Modal -->
-    <div
-      id="taskModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center hidden"
-    >
-      <div class="bg-white/10 backdrop-blur-xl p-6 rounded-2xl w-96 shadow-xl">
-        <h3 class="text-lg font-semibold mb-4 text-white" id="taskModalTitle">
-          Add Task
-        </h3>
+      <!-- Filters and Actions -->
+      <div class="filter-section">
+        <div class="filter-controls">
+          <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search tasks..."
+              class="search-input"
+            />
+          </div>
 
-        <!-- Title -->
-        <input
-          type="text"
-          id="taskTitleInput"
-          placeholder="Task Title"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"
-        />
+          <select id="statusFilter" class="filter-select">
+            <option value="">All Status</option>
+            <option value="To Do">To Do</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
 
-        <!-- Description -->
-        <textarea
-          id="taskDescInput"
-          placeholder="Task Description"
-          rows="3"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"
-        ></textarea>
+          <select id="priorityFilter" class="filter-select">
+            <option value="">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
 
-        <!-- Status -->
-        <select
-          id="taskStatusInput"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-black mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-          <option value="To Do">To Do</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Done">Done</option>
-        </select>
+          <select id="boardFilter" class="filter-select">
+            <option value="">All Boards</option>
+          </select>
+        </div>
 
-        <!-- Priority -->
-        <select
-          id="taskPriorityInput"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-black mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-          <option value="" selected disabled>Select Priority</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
-
-        <!-- Due Date -->
-        <input
-          type="date"
-          id="taskDueDateInput"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-black mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-
-        <!-- Board Dropdown -->
-        <select
-          id="taskBoardInput"
-          class="w-full px-4 py-2 rounded-xl bg-white/5 text-black mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        ></select>
-
-        <!-- Buttons -->
-        <div class="flex justify-end space-x-2">
-          <button
-            id="taskModalCancel"
-            class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition"
-          >
-            Cancel
+        <div class="action-controls">
+          <button id="addTaskBtn" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add Task
           </button>
-          <button
-            id="taskModalSave"
-            class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition"
-          >
-            Save
+
+          <div class="view-toggle">
+            <button class="view-toggle-btn active" data-view="table">
+              <i class="fas fa-table"></i>
+            </button>
+            <button class="view-toggle-btn" data-view="cards">
+              <i class="fas fa-th-large"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk Actions Bar (Hidden by default) -->
+      <div class="bulk-actions-bar" id="bulkActionsBar">
+        <div class="bulk-actions-info">
+          <span class="count" id="selectedCount">0</span>
+          <span>tasks selected</span>
+          <button class="clear-selection" id="clearSelection">
+            Clear selection
           </button>
         </div>
+        <div class="bulk-actions-buttons">
+          <button class="bulk-action-btn primary" id="bulkStatusUpdate">
+            <i class="fas fa-edit"></i>
+            Update Status
+          </button>
+          <button class="bulk-action-btn secondary" id="bulkDelete">
+            <i class="fas fa-trash"></i>
+            Delete Selected
+          </button>
+        </div>
+      </div>
+
+      <!-- Tasks Table -->
+      <div class="table-container desktop-table" id="tasksTableContainer">
+        <table class="tasks-table">
+          <thead>
+            <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  class="select-all-checkbox"
+                  id="selectAllTasks"
+                />
+              </th>
+              <th>Task</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Board</th>
+              <th>Due Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tasksTableBody">
+            <!-- Tasks will be populated here -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards View -->
+      <div class="mobile-cards" id="tasksCardsContainer">
+        <!-- Mobile cards will be populated here -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none">
+        <div class="empty-state-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <h3>No tasks found</h3>
+        <p>Create your first task to get started with task management</p>
+        <button class="btn btn-primary" id="emptyStateAddBtn">
+          <i class="fas fa-plus"></i>
+          Add Your First Task
+        </button>
+      </div>
+    </main>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay" id="taskModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="taskModalTitle">Add Task</h3>
+          <button class="modal-close" id="taskModalClose">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form class="modal-form" id="taskForm">
+          <div class="form-section">
+            <h4>Task Details</h4>
+
+            <div class="form-group">
+              <label class="form-label">Task Title *</label>
+              <input
+                type="text"
+                id="taskTitleInput"
+                class="form-input"
+                placeholder="Enter task title..."
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea
+                id="taskDescInput"
+                class="form-input"
+                rows="3"
+                placeholder="Enter task description..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Task Properties</h4>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="taskStatusInput" class="form-input form-select">
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select id="taskPriorityInput" class="form-input form-select">
+                  <option value="">Select Priority</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Board *</label>
+                <select
+                  id="taskBoardInput"
+                  class="form-input form-select"
+                  required
+                >
+                  <!-- Boards will be populated here -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Due Date</label>
+                <input type="date" id="taskDueDateInput" class="form-input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="taskModalCancel"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" id="taskModalSave">
+              <i class="fas fa-save"></i>
+              Save Task
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bulk Status Update Modal -->
+    <div class="modal-overlay" id="bulkStatusModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Update Status</h3>
+          <button class="modal-close" id="bulkStatusModalClose">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form class="modal-form" id="bulkStatusForm">
+          <div class="form-group">
+            <label class="form-label">New Status</label>
+            <select
+              id="bulkStatusSelect"
+              class="form-input form-select"
+              required
+            >
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="bulkStatusCancel"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              Update Status
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 

@@ -1,191 +1,203 @@
-// DOM elements
-const boardsContainer = document.getElementById("boardsContainer");
+// DOM Elements
+const boardsTableBody = document.getElementById("boardsTableBody");
+const boardsMobileCards = document.getElementById("boardsMobileCards");
 const addBoardBtn = document.getElementById("addBoardBtn");
 const boardModal = document.getElementById("boardModal");
-const boardNameInput = document.getElementById("boardNameInput");
-const boardDescInput = document.getElementById("boardDescInput");
+const boardModalClose = document.getElementById("boardModalClose");
 const boardModalCancel = document.getElementById("boardModalCancel");
 const boardModalSave = document.getElementById("boardModalSave");
 const boardModalTitle = document.getElementById("boardModalTitle");
-
+const boardNameInput = document.getElementById("boardNameInput");
+const boardDescInput = document.getElementById("boardDescInput");
+const emptyState = document.getElementById("emptyState");
+const searchInput = document.getElementById("searchInput");
 const logoutBtn = document.getElementById("logoutBtn");
-const welcomeUser = document.getElementById("userEmail");
+const toastContainer = document.getElementById("toastContainer");
+const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const userEmail = document.getElementById("userEmail");
 
-// JWT Token
+// JWT token
 const token = localStorage.getItem("token");
 
 // State
+let boardsData = [];
 let editingBoardId = null;
 
-// Logout
-document.addEventListener("DOMContentLoaded", () => {
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("token");
-      window.location.href = "index.html"; // points to index.html
-    });
-  }
-});
+// Backend API
+const API_BASE = "https://taskmanager-tj4l.onrender.com";
 
-// Decode JWT payload
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch (e) {
-    return null;
-  }
+// -------------------- Functions -------------------- //
+
+// Show toast
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
 }
 
 // Fetch user info
 async function fetchUser() {
   if (!token) return;
-
-  const payload = parseJwt(token);
-  if (!payload || !payload.user_id) return;
-
   try {
-    const res = await fetch(
-      `https://taskmanager-tj4l.onrender.com/users/${payload.user_id}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    if (!res.ok) throw new Error("Failed to fetch user info");
-
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const res = await fetch(`${API_BASE}/users/${payload.user_id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
-    welcomeUser.textContent = `Welcome, ${data.name || data.email || "User"}`;
-  } catch (err) {
-    console.error("Error fetching user:", err);
-    welcomeUser.textContent = "Welcome, User";
+    userEmail.textContent = `Welcome, ${data.name || data.email || "User"}`;
+  } catch {
+    userEmail.textContent = "Welcome, User";
   }
 }
 
 // Fetch boards
 async function fetchBoards() {
   try {
-    const res = await fetch("https://taskmanager-tj4l.onrender.com/boards", {
+    const res = await fetch(`${API_BASE}/boards`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error("Failed to fetch boards");
-    const boards = await res.json();
-    renderBoards(boards);
-  } catch (err) {
-    console.error("Error loading boards:", err);
-    boardsContainer.innerHTML =
-      "<p class='text-red-500'>Failed to load boards</p>";
+    boardsData = await res.json();
+    renderBoards(boardsData);
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to fetch boards", "error");
   }
 }
 
-// Render boards
-function renderBoards(boards) {
-  boardsContainer.innerHTML = "";
-  boards.forEach((board) => {
-    const div = document.createElement("div");
-    div.classList.add(
-      "bg-white",
-      "p-4",
-      "rounded-lg",
-      "shadow",
-      "hover:shadow-lg",
-      "flex",
-      "justify-between",
-      "items-center",
-      "cursor-pointer"
-    );
+// Render boards (table + mobile cards)
+function renderBoards(data) {
+  // Empty state
+  if (data.length === 0) {
+    emptyState.style.display = "block";
+    boardsTableBody.innerHTML = "";
+    boardsMobileCards.innerHTML = "";
+    return;
+  }
+  emptyState.style.display = "none";
 
-    div.innerHTML = `
-      <div>
-        <h4 class="font-bold text-gray-800">${board.title}</h4>
-        <p class="text-gray-500 text-sm">${board.description || ""}</p>
-      </div>
-      <div class="flex gap-2">
-        <button class="editBtn bg-yellow-500 px-2 py-1 rounded text-white hover:bg-yellow-600">Edit</button>
-        <button class="deleteBtn bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600">Delete</button>
-      </div>
+  // Desktop Table
+  boardsTableBody.innerHTML = "";
+  data.forEach((board) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="board-name">${board.title}</td>
+      <td class="board-description">${board.description || ""}</td>
+      <td class="board-date">${new Date(
+        board.createdAt
+      ).toLocaleDateString()}</td>
+      <td><span class="task-count-badge">${board.tasks?.length || 0}</span></td>
+      <td>
+        <div class="action-buttons-group">
+          <button class="action-btn edit-btn">Edit</button>
+          <button class="action-btn delete-btn">Delete</button>
+        </div>
+      </td>
     `;
-
-    // Click board → go to tasks page
-    div.addEventListener("click", (e) => {
-      if (
-        !e.target.classList.contains("editBtn") &&
-        !e.target.classList.contains("deleteBtn")
-      ) {
+    // Row click -> open tasks page
+    tr.addEventListener("click", (e) => {
+      if (!e.target.closest(".edit-btn") && !e.target.closest(".delete-btn")) {
         window.location.href = `tasks.html?boardId=${board.id}`;
       }
     });
-
-    // Edit
-    div.querySelector(".editBtn").addEventListener("click", (e) => {
+    // Edit button
+    tr.querySelector(".edit-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       editingBoardId = board.id;
       boardNameInput.value = board.title;
       boardDescInput.value = board.description || "";
       boardModalTitle.textContent = "Edit Board";
-      boardModal.classList.remove("hidden");
+      showModal(boardModal);
     });
-
-    // Delete
-    div.querySelector(".deleteBtn").addEventListener("click", async (e) => {
+    // Delete button
+    tr.querySelector(".delete-btn").addEventListener("click", (e) => {
       e.stopPropagation();
-      if (confirm(`Delete board "${board.title}"?`)) {
-        try {
-          await fetch(
-            `https://taskmanager-tj4l.onrender.com/boards/${board.id}`,
-            {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          fetchBoards();
-        } catch (err) {
-          console.error(err);
-        }
+      deleteBoard(board);
+    });
+    boardsTableBody.appendChild(tr);
+  });
+
+  // Mobile Cards
+  boardsMobileCards.innerHTML = "";
+  data.forEach((board) => {
+    const card = document.createElement("div");
+    card.className = "board-mobile-card";
+    card.innerHTML = `
+      <div class="card-header">
+        <h4 class="card-title">${board.title}</h4>
+        <span class="task-count-badge">${board.tasks?.length || 0}</span>
+      </div>
+      <div class="card-body">
+        <p class="card-description">${board.description || ""}</p>
+        <div class="card-row">
+          <span class="card-label">Created:</span>
+          <span class="card-value">${new Date(
+            board.createdAt
+          ).toLocaleDateString()}</span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="action-btn edit-btn">Edit</button>
+        <button class="action-btn delete-btn">Delete</button>
+      </div>
+    `;
+    card.querySelector(".edit-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      editingBoardId = board.id;
+      boardNameInput.value = board.title;
+      boardDescInput.value = board.description || "";
+      boardModalTitle.textContent = "Edit Board";
+      showModal(boardModal);
+    });
+    card.querySelector(".delete-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteBoard(board);
+    });
+    card.addEventListener("click", (e) => {
+      if (!e.target.closest(".edit-btn") && !e.target.closest(".delete-btn")) {
+        window.location.href = `tasks.html?boardId=${board.id}`;
       }
     });
-
-    boardsContainer.appendChild(div);
+    boardsMobileCards.appendChild(card);
   });
 }
 
-// Modal events
-addBoardBtn.addEventListener("click", () => {
-  editingBoardId = null;
-  boardNameInput.value = "";
-  boardDescInput.value = "";
-  boardModalTitle.textContent = "Add Board";
-  boardModal.classList.remove("hidden");
-});
+// -------------------- Modals -------------------- //
+function showModal(modal) {
+  modal.style.display = "flex";
+  setTimeout(() => modal.classList.add("show"), 10);
+}
+function closeModal(modal) {
+  modal.classList.remove("show");
+  setTimeout(() => (modal.style.display = "none"), 300);
+}
 
-boardModalCancel.addEventListener("click", () => {
-  boardModal.classList.add("hidden");
-});
+boardModalClose.addEventListener("click", () => closeModal(boardModal));
+boardModalCancel.addEventListener("click", () => closeModal(boardModal));
 
+// Add/Edit Board
 boardModalSave.addEventListener("click", async () => {
   const title = boardNameInput.value.trim();
   const description = boardDescInput.value.trim();
-
   if (!title || !description)
-    return alert("Both title and description are required");
+    return showToast("Title & Description required", "warning");
 
   try {
     if (editingBoardId) {
-      // Update board
-      await fetch(
-        `https://taskmanager-tj4l.onrender.com/boards/${editingBoardId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ title, description }),
-        }
-      );
+      await fetch(`${API_BASE}/boards/${editingBoardId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, description }),
+      });
+      showToast("Board updated successfully", "success");
     } else {
-      // Create board
-      await fetch("https://taskmanager-tj4l.onrender.com/boards", {
+      await fetch(`${API_BASE}/boards`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,24 +205,58 @@ boardModalSave.addEventListener("click", async () => {
         },
         body: JSON.stringify({ title, description }),
       });
+      showToast("Board created successfully", "success");
     }
-    boardModal.classList.add("hidden");
-    boardNameInput.value = "";
-    boardDescInput.value = "";
+    closeModal(boardModal);
     fetchBoards();
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to save board", "error");
   }
 });
 
-// Navigation buttons
-document.getElementById("dashboardBtn").onclick = () =>
-  (window.location.href = "dashboard.html");
-document.getElementById("boardsBtn").onclick = () =>
-  (window.location.href = "board.html");
-document.getElementById("tasksBtn").onclick = () =>
-  (window.location.href = "tasks.html");
+// Delete Board
+async function deleteBoard(board) {
+  if (!confirm(`Delete board "${board.title}"? This action cannot be undone.`))
+    return;
+  try {
+    await fetch(`${API_BASE}/boards/${board.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    showToast("Board deleted successfully", "success");
+    fetchBoards();
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to delete board", "error");
+  }
+}
 
-// Initialize
+// -------------------- Search -------------------- //
+searchInput.addEventListener("input", () => {
+  const filtered = boardsData.filter((b) =>
+    b.title.toLowerCase().includes(searchInput.value.toLowerCase())
+  );
+  renderBoards(filtered);
+});
+
+// -------------------- Logout -------------------- //
+logoutBtn.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  window.location.href = "index.html";
+});
+
+// -------------------- Mobile Menu -------------------- //
+mobileMenuToggle.addEventListener("click", () => {
+  sidebar.classList.toggle("active");
+  overlay.classList.toggle("active");
+});
+
+overlay.addEventListener("click", () => {
+  sidebar.classList.remove("active");
+  overlay.classList.remove("active");
+});
+
+// -------------------- Initialize -------------------- //
 fetchUser();
 fetchBoards();
