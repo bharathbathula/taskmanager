@@ -1,5 +1,3 @@
-// Professional Tasks Management JavaScript (Fixed Backend Integration)
-
 // DOM Elements
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("overlay");
@@ -100,7 +98,10 @@ function showLoading() {
   const loadingOverlay = document.createElement("div");
   loadingOverlay.className = "loading-overlay";
   loadingOverlay.id = "loadingOverlay";
-  loadingOverlay.innerHTML = `<div class="loading-spinner"></div><span>Loading tasks...</span>`;
+  loadingOverlay.innerHTML = `
+    <div class="loading-spinner"></div>
+    <span>Loading tasks...</span>
+  `;
   document.body.appendChild(loadingOverlay);
 }
 
@@ -115,15 +116,23 @@ function showError(message) {
   const errorDiv = document.createElement("div");
   errorDiv.className = "error-message";
   errorDiv.style.cssText = `
-    position: fixed; top: 20px; right: 20px; 
-    background: #e74c3c; color: white; 
-    padding: 1rem; border-radius: 0.5rem; z-index: 3000;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e74c3c;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    z-index: 3000;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   `;
-  errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message} 
-  <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;margin-left:1rem;cursor:pointer;">
-    <i class="fas fa-times"></i>
-  </button>`;
+  errorDiv.innerHTML = `
+    <i class="fas fa-exclamation-circle"></i> ${message} 
+    <button onclick="this.parentElement.remove()" 
+      style="background:none;border:none;color:white;margin-left:1rem;cursor:pointer;">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
   document.body.appendChild(errorDiv);
   setTimeout(() => errorDiv.remove(), 5000);
 }
@@ -134,8 +143,7 @@ function setupEventListeners() {
   overlay.addEventListener("click", closeSidebar);
   logoutBtn.addEventListener("click", logout);
   addTaskBtn.addEventListener("click", openAddTaskModal);
-  if (emptyStateAddBtn)
-    emptyStateAddBtn.addEventListener("click", openAddTaskModal);
+  emptyStateAddBtn.addEventListener("click", openAddTaskModal);
   taskModalClose.addEventListener("click", closeTaskModal);
   taskModalCancel.addEventListener("click", closeTaskModal);
   taskForm.addEventListener("submit", handleTaskSubmit);
@@ -149,13 +157,10 @@ function setupEventListeners() {
     btn.addEventListener("click", () => toggleView(btn.dataset.view))
   );
 
-  if (selectAllCheckbox)
-    selectAllCheckbox.addEventListener("change", handleSelectAll);
-  if (clearSelection)
-    clearSelection.addEventListener("click", clearTaskSelection);
-  if (bulkStatusUpdate)
-    bulkStatusUpdate.addEventListener("click", openBulkStatusModal);
-  if (bulkDelete) bulkDelete.addEventListener("click", handleBulkDelete);
+  selectAllCheckbox.addEventListener("change", handleSelectAll);
+  clearSelection.addEventListener("click", clearTaskSelection);
+  bulkStatusUpdate.addEventListener("click", openBulkStatusModal);
+  bulkDelete.addEventListener("click", handleBulkDelete);
 
   taskModal.addEventListener("click", (e) => {
     if (e.target === taskModal) closeTaskModal();
@@ -167,17 +172,6 @@ function setupEventListeners() {
     });
 
   document.addEventListener("keydown", handleKeyboardShortcuts);
-
-  // Setup bulk status form handler
-  const bulkStatusForm = document.getElementById("bulkStatusForm");
-  if (bulkStatusForm) {
-    bulkStatusForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const newStatus = document.getElementById("bulkStatusSelect").value;
-      handleBulkStatusUpdate(newStatus);
-      closeBulkStatusModal();
-    });
-  }
 }
 
 // Keyboard shortcuts
@@ -204,6 +198,7 @@ function toggleSidebar() {
   sidebar.classList.toggle("active");
   overlay.classList.toggle("active");
 }
+
 function closeSidebar() {
   sidebar.classList.remove("active");
   overlay.classList.remove("active");
@@ -234,7 +229,7 @@ async function fetchUser() {
     const data = await response.json();
     userEmail.textContent = `Welcome, ${data.email}`;
   } catch (error) {
-    console.error("Fetch user error:", error);
+    console.error(error);
     showError("Unable to fetch user info");
   }
 }
@@ -247,13 +242,11 @@ async function fetchBoards() {
     });
     if (!response.ok) throw new Error("Failed to fetch boards");
     allBoards = await response.json();
-    if (allBoards.length > 0) {
-      boardId = allBoards[0].id;
-    }
+    if (allBoards.length) boardId = allBoards[0].id;
     populateBoardFilters();
     populateBoardSelect();
   } catch (error) {
-    console.error("Fetch boards error:", error);
+    console.error(error);
     showError("Unable to fetch boards");
   }
 }
@@ -276,46 +269,21 @@ function populateBoardSelect() {
     opt.textContent = board.name;
     taskBoardInput.appendChild(opt);
   });
-
-  // Set default board selection
-  if (boardId && taskBoardInput) {
-    taskBoardInput.value = boardId;
-  }
 }
 
 // Fetch tasks
 async function fetchTasks() {
-  if (!boardId) {
-    console.warn("No board ID available to fetch tasks");
-    return;
-  }
-
+  if (!boardId) return;
   try {
     const response = await fetch(`${API_BASE}/boards/${boardId}/tasks`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Fetch tasks error:", response.status, errorText);
-      throw new Error(`Failed to fetch tasks: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error("Failed to fetch tasks");
     allTasks = await response.json();
-
-    // Add board information to tasks for display
-    allTasks = allTasks.map((task) => ({
-      ...task,
-      boardName:
-        allBoards.find((board) => board.id === task.board_id)?.name ||
-        "Unknown Board",
-      boardId: task.board_id, // Ensure consistent property naming
-    }));
-
     filteredTasks = [...allTasks];
     renderTasks();
   } catch (error) {
-    console.error("Fetch tasks error:", error);
+    console.error(error);
     showError("Unable to fetch tasks");
   }
 }
@@ -330,8 +298,6 @@ function renderTasks() {
 
 // Render table
 function renderTasksTable() {
-  if (!tasksTableBody) return;
-
   tasksTableBody.innerHTML = "";
   filteredTasks.forEach((task) => {
     const tr = document.createElement("tr");
@@ -345,31 +311,26 @@ function renderTasksTable() {
           <span class="task-description">${task.description || ""}</span>
         </div>
       </td>
-      <td>
-        <span class="status-badge status-${task.status
-          .replace(/\s+/g, "-")
-          .toLowerCase()}">${task.status}</span>
-      </td>
-      <td>
-        <span class="priority-badge priority-${(
-          task.priority || ""
-        ).toLowerCase()}">${task.priority || ""}</span>
-      </td>
+      <td><span class="status-badge status-${task.status
+        .replace(" ", "-")
+        .toLowerCase()}">${task.status}</span></td>
+      <td><span class="priority-badge priority-${
+        task.priority?.toLowerCase() || ""
+      }">${task.priority || ""}</span></td>
       <td>${task.boardName || ""}</td>
-      <td>${task.due_date || task.dueDate || ""}</td>
+      <td>${task.dueDate || ""}</td>
       <td>
-        <button class="btn btn-secondary edit-btn" data-id="${task.id}">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="btn btn-secondary delete-btn" data-id="${task.id}">
-          <i class="fas fa-trash"></i>
-        </button>
+        <button class="btn btn-secondary edit-btn" data-id="${
+          task.id
+        }"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-secondary delete-btn" data-id="${
+          task.id
+        }"><i class="fas fa-trash"></i></button>
       </td>
     `;
     tasksTableBody.appendChild(tr);
   });
 
-  // Attach event listeners
   document
     .querySelectorAll(".task-checkbox")
     .forEach((cb) => cb.addEventListener("change", handleTaskSelection));
@@ -387,8 +348,6 @@ function renderTasksTable() {
 
 // Render mobile cards
 function renderTasksCards() {
-  if (!tasksCardsContainer) return;
-
   tasksCardsContainer.innerHTML = "";
   filteredTasks.forEach((task) => {
     const card = document.createElement("div");
@@ -397,15 +356,15 @@ function renderTasksCards() {
       <div class="task-card-header">
         <span class="task-title">${task.title}</span>
         <span class="status-badge status-${task.status
-          .replace(/\s+/g, "-")
+          .replace(" ", "-")
           .toLowerCase()}">${task.status}</span>
       </div>
       <p class="task-description">${task.description || ""}</p>
       <div class="task-card-footer">
-        <span class="priority-badge priority-${(
-          task.priority || ""
-        ).toLowerCase()}">${task.priority || ""}</span>
-        <span>${task.due_date || task.dueDate || ""}</span>
+        <span class="priority-badge priority-${
+          task.priority?.toLowerCase() || ""
+        }">${task.priority || ""}</span>
+        <span>${task.dueDate || ""}</span>
       </div>
     `;
     tasksCardsContainer.appendChild(card);
@@ -414,26 +373,21 @@ function renderTasksCards() {
 
 // Update stats
 function updateStats() {
-  if (totalTasks) totalTasks.textContent = allTasks.length;
-  if (pendingTasks)
-    pendingTasks.textContent = allTasks.filter(
-      (t) => t.status === "To Do"
-    ).length;
-  if (inProgressTasks)
-    inProgressTasks.textContent = allTasks.filter(
-      (t) => t.status === "In Progress"
-    ).length;
-  if (completedTasks)
-    completedTasks.textContent = allTasks.filter(
-      (t) => t.status === "Done"
-    ).length;
+  totalTasks.textContent = allTasks.length;
+  pendingTasks.textContent = allTasks.filter(
+    (t) => t.status === "To Do"
+  ).length;
+  inProgressTasks.textContent = allTasks.filter(
+    (t) => t.status === "In Progress"
+  ).length;
+  completedTasks.textContent = allTasks.filter(
+    (t) => t.status === "Done"
+  ).length;
 }
 
 // Empty state
 function toggleEmptyState() {
-  if (emptyState) {
-    emptyState.style.display = filteredTasks.length === 0 ? "flex" : "none";
-  }
+  emptyState.style.display = filteredTasks.length === 0 ? "flex" : "none";
 }
 
 // Debounce utility
@@ -449,9 +403,11 @@ function debounce(fn, delay) {
 function handleSearch() {
   applyFilters();
 }
+
 function handleFilterChange() {
   applyFilters();
 }
+
 function applyFilters() {
   const search = searchInput.value.toLowerCase();
   const status = statusFilter.value;
@@ -459,16 +415,13 @@ function applyFilters() {
   const board = boardFilter.value;
 
   filteredTasks = allTasks.filter((task) => {
-    const matchesStatus = !status || task.status === status;
-    const matchesPriority = !priority || task.priority === priority;
-    const matchesBoard =
-      !board || task.board_id == board || task.boardId == board;
-    const matchesSearch =
-      !search ||
-      task.title.toLowerCase().includes(search) ||
-      (task.description && task.description.toLowerCase().includes(search));
-
-    return matchesStatus && matchesPriority && matchesBoard && matchesSearch;
+    return (
+      (!status || task.status === status) &&
+      (!priority || task.priority === priority) &&
+      (!board || task.boardId === board) &&
+      (task.title.toLowerCase().includes(search) ||
+        task.description?.toLowerCase().includes(search))
+    );
   });
 
   renderTasks();
@@ -477,15 +430,8 @@ function applyFilters() {
 // View toggle
 function toggleView(view) {
   currentView = view;
-  if (desktopTable)
-    desktopTable.style.display = view === "table" ? "table" : "none";
-  if (mobileCards)
-    mobileCards.style.display = view === "cards" ? "block" : "none";
-
-  // Update active button
-  viewToggleBtns.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.view === view);
-  });
+  desktopTable.style.display = view === "table" ? "table" : "none";
+  mobileCards.style.display = view === "cards" ? "block" : "none";
 }
 
 // Task modal
@@ -493,27 +439,20 @@ function openAddTaskModal() {
   editingTaskId = null;
   taskModalTitle.textContent = "Add Task";
   taskForm.reset();
-
-  // Set default board if available
-  if (boardId && taskBoardInput) {
-    taskBoardInput.value = boardId;
-  }
-
   taskModal.classList.add("active");
 }
 
 function openEditTaskModal(id) {
   editingTaskId = id;
-  const task = allTasks.find((t) => t.id == id);
+  const task = allTasks.find((t) => t.id === id);
   if (!task) return;
-
   taskModalTitle.textContent = "Edit Task";
   taskTitleInput.value = task.title;
   taskDescInput.value = task.description || "";
   taskStatusInput.value = task.status;
   taskPriorityInput.value = task.priority || "";
-  taskDueDateInput.value = task.due_date || task.dueDate || "";
-  taskBoardInput.value = task.board_id || task.boardId;
+  taskDueDateInput.value = task.dueDate || "";
+  taskBoardInput.value = task.boardId;
   taskModal.classList.add("active");
 }
 
@@ -529,46 +468,30 @@ function closeAllModals() {
 // Task form submit
 async function handleTaskSubmit(e) {
   e.preventDefault();
-
-  const selectedBoardId = taskBoardInput.value || boardId;
-  if (!selectedBoardId) {
-    showError("Please select a board for the task");
-    return;
-  }
-
   const taskData = {
-    title: taskTitleInput.value.trim(),
-    description: taskDescInput.value.trim(),
+    title: taskTitleInput.value,
+    description: taskDescInput.value,
     status: taskStatusInput.value,
     priority: taskPriorityInput.value,
-    due_date: taskDueDateInput.value || null, // Use snake_case for backend
-    board_id: parseInt(selectedBoardId),
+    dueDate: taskDueDateInput.value,
+    boardId: taskBoardInput.value,
   };
 
-  // Remove empty/null values
-  Object.keys(taskData).forEach((key) => {
-    if (taskData[key] === "" || taskData[key] === null) {
-      delete taskData[key];
-    }
-  });
-
   try {
-    if (editingTaskId) {
-      await updateTask(editingTaskId, taskData, selectedBoardId);
-    } else {
-      await createTask(taskData, selectedBoardId);
-    }
+    if (editingTaskId) await updateTask(editingTaskId, taskData);
+    else await createTask(taskData);
+
     closeTaskModal();
     await fetchTasks();
   } catch (error) {
-    console.error("Task submit error:", error);
+    console.error(error);
     showError("Failed to save task");
   }
 }
 
 // CRUD operations
-async function createTask(data, boardId) {
-  const response = await fetch(`${API_BASE}/boards/${boardId}/tasks/`, {
+async function createTask(data) {
+  const response = await fetch(`${API_BASE}/boards/${data.boardId}/tasks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -576,76 +499,43 @@ async function createTask(data, boardId) {
     },
     body: JSON.stringify(data),
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Create task error:", response.status, errorText);
-    throw new Error(`Failed to create task: ${response.status}`);
-  }
-
-  return await response.json();
+  if (!response.ok) throw new Error("Failed to create task");
 }
 
-async function updateTask(id, data, boardId) {
-  const response = await fetch(`${API_BASE}/boards/${boardId}/tasks/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Update task error:", response.status, errorText);
-    throw new Error(`Failed to update task: ${response.status}`);
-  }
-
-  return await response.json();
+async function updateTask(id, data) {
+  const response = await fetch(
+    `${API_BASE}/boards/${data.boardId}/tasks/${id}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to update task");
 }
 
 async function handleDeleteTask(id) {
   if (!confirm("Are you sure you want to delete this task?")) return;
-
-  const task = allTasks.find((t) => t.id == id);
-  if (!task) {
-    showError("Task not found");
-    return;
-  }
-
-  const taskBoardId = task.board_id || task.boardId;
-
-  try {
-    const response = await fetch(
-      `${API_BASE}/boards/${taskBoardId}/tasks/${id}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Delete task error:", response.status, errorText);
-      throw new Error(`Failed to delete task: ${response.status}`);
+  const task = allTasks.find((t) => t.id === id);
+  const response = await fetch(
+    `${API_BASE}/boards/${task.boardId}/tasks/${id}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
     }
-
-    await fetchTasks();
-  } catch (error) {
-    console.error("Delete task error:", error);
-    showError("Failed to delete task");
-  }
+  );
+  if (!response.ok) return showError("Failed to delete task");
+  await fetchTasks();
 }
 
 // Task selection
 function handleTaskSelection(e) {
   const id = e.target.dataset.id;
-  if (e.target.checked) {
-    selectedTasks.add(id);
-  } else {
-    selectedTasks.delete(id);
-  }
+  if (e.target.checked) selectedTasks.add(id);
+  else selectedTasks.delete(id);
   updateBulkBar();
 }
 
@@ -654,9 +544,7 @@ function handleSelectAll(e) {
   const allCheckboxes = document.querySelectorAll(".task-checkbox");
   allCheckboxes.forEach((cb) => {
     cb.checked = e.target.checked;
-    if (e.target.checked) {
-      selectedTasks.add(cb.dataset.id);
-    }
+    if (e.target.checked) selectedTasks.add(cb.dataset.id);
   });
   updateBulkBar();
 }
@@ -666,16 +554,14 @@ function clearTaskSelection() {
   document
     .querySelectorAll(".task-checkbox")
     .forEach((cb) => (cb.checked = false));
-  if (selectAllCheckbox) selectAllCheckbox.checked = false;
+  selectAllCheckbox.checked = false;
   updateBulkBar();
 }
 
 function updateBulkBar() {
-  if (!bulkActionsBar) return;
-
-  if (selectedTasks.size > 0) {
+  if (selectedTasks.size) {
     bulkActionsBar.classList.add("active");
-    if (selectedCount) selectedCount.textContent = selectedTasks.size;
+    selectedCount.textContent = selectedTasks.size;
   } else {
     bulkActionsBar.classList.remove("active");
   }
@@ -684,97 +570,57 @@ function updateBulkBar() {
 // Bulk actions
 function openBulkStatusModal() {
   if (!selectedTasks.size) return;
-  if (bulkStatusModal) bulkStatusModal.classList.add("active");
+  bulkStatusModal.classList.add("active");
 }
 
 function closeBulkStatusModal() {
-  if (bulkStatusModal) bulkStatusModal.classList.remove("active");
-}
-
-// Bulk status modal close button handler
-// Bulk status modal close button handler
-const bulkStatusModalClose = document.getElementById("bulkStatusModalClose");
-const bulkStatusCancel = document.getElementById("bulkStatusCancel");
-
-if (bulkStatusModalClose) {
-  bulkStatusModalClose.addEventListener("click", closeBulkStatusModal);
-}
-if (bulkStatusCancel) {
-  bulkStatusCancel.addEventListener("click", closeBulkStatusModal);
-}
-
-// Sidebar boards navigation
-const sidebarBoardsList = document.getElementById("sidebarBoardsList");
-if (sidebarBoardsList) {
-  sidebarBoardsList.addEventListener("click", async (e) => {
-    const boardItem = e.target.closest(".sidebar-board-item");
-    if (boardItem) {
-      const selectedBoardId = boardItem.dataset.boardId;
-      if (selectedBoardId) {
-        boardId = selectedBoardId;
-        boardFilter.value = selectedBoardId;
-        await fetchTasks();
-        applyFilters();
-        // Update board select in modal when switching boards
-        if (taskBoardInput) {
-          taskBoardInput.value = selectedBoardId;
-        }
-        closeSidebar();
-      }
-    }
-  });
+  bulkStatusModal.classList.remove("active");
 }
 
 async function handleBulkDelete() {
   if (!selectedTasks.size) return;
   if (!confirm(`Delete ${selectedTasks.size} selected tasks?`)) return;
-
-  try {
-    for (const id of selectedTasks) {
-      const task = allTasks.find((t) => t.id == id);
-      if (!task) continue;
-
-      const taskBoardId = task.board_id || task.boardId;
-      await fetch(`${API_BASE}/boards/${taskBoardId}/tasks/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    }
-
-    clearTaskSelection();
-    await fetchTasks();
-  } catch (error) {
-    console.error("Bulk delete error:", error);
-    showError("Failed to delete selected tasks");
+  for (const id of selectedTasks) {
+    const task = allTasks.find((t) => t.id === id);
+    if (!task) continue;
+    await fetch(`${API_BASE}/boards/${task.boardId}/tasks/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
   }
+  clearTaskSelection();
+  await fetchTasks();
 }
 
 async function handleBulkStatusUpdate(newStatus) {
   if (!selectedTasks.size) return;
-
-  try {
-    for (const id of selectedTasks) {
-      const task = allTasks.find((t) => t.id == id);
-      if (!task) continue;
-
-      const taskBoardId = task.board_id || task.boardId;
-      await fetch(`${API_BASE}/boards/${taskBoardId}/tasks/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-    }
-
-    clearTaskSelection();
-    await fetchTasks();
-  } catch (error) {
-    console.error("Bulk status update error:", error);
-    showError("Failed to update selected tasks");
+  for (const id of selectedTasks) {
+    const task = allTasks.find((t) => t.id === id);
+    if (!task) continue;
+    await fetch(`${API_BASE}/boards/${task.boardId}/tasks/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
   }
+  clearTaskSelection();
+  await fetchTasks();
 }
+
+document
+  .getElementById("bulkStatusForm")
+  .addEventListener("submit", function (e) {
+    e.preventDefault();
+    const newStatus = document.getElementById("bulkStatusSelect").value;
+    handleBulkStatusUpdate(newStatus);
+    closeBulkStatusModal();
+  });
 
 // Initial view setup
 toggleView("table");
+
+// Fetch tasks for the initial board
+if (boardId) fetchTasks();
