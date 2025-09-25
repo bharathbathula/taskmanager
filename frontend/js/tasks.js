@@ -692,18 +692,38 @@ function closeBulkStatusModal() {
 }
 
 // Bulk status modal close button handler
-document.addEventListener("DOMContentLoaded", () => {
-  const bulkStatusModalClose = document.getElementById("bulkStatusModalClose");
-  const bulkStatusCancel = document.getElementById("bulkStatusCancel");
+// Bulk status modal close button handler
+const bulkStatusModalClose = document.getElementById("bulkStatusModalClose");
+const bulkStatusCancel = document.getElementById("bulkStatusCancel");
 
-  if (bulkStatusModalClose) {
-    bulkStatusModalClose.addEventListener("click", closeBulkStatusModal);
-  }
+if (bulkStatusModalClose) {
+  bulkStatusModalClose.addEventListener("click", closeBulkStatusModal);
+}
+if (bulkStatusCancel) {
+  bulkStatusCancel.addEventListener("click", closeBulkStatusModal);
+}
 
-  if (bulkStatusCancel) {
-    bulkStatusCancel.addEventListener("click", closeBulkStatusModal);
-  }
-});
+// Sidebar boards navigation
+const sidebarBoardsList = document.getElementById("sidebarBoardsList");
+if (sidebarBoardsList) {
+  sidebarBoardsList.addEventListener("click", async (e) => {
+    const boardItem = e.target.closest(".sidebar-board-item");
+    if (boardItem) {
+      const selectedBoardId = boardItem.dataset.boardId;
+      if (selectedBoardId) {
+        boardId = selectedBoardId;
+        boardFilter.value = selectedBoardId;
+        await fetchTasks();
+        applyFilters();
+        // Update board select in modal when switching boards
+        if (taskBoardInput) {
+          taskBoardInput.value = selectedBoardId;
+        }
+        closeSidebar();
+      }
+    }
+  });
+}
 
 async function handleBulkDelete() {
   if (!selectedTasks.size) return;

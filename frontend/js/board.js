@@ -80,7 +80,7 @@ function setupEventListeners() {
   boardModalSave.addEventListener("click", handleBoardSave);
 
   // Search
-  searchInput.addEventListener("input", handleSearch);
+  // (Removed duplicate search event listener)
 
   // Logout
   logoutBtn.addEventListener("click", logout);
@@ -195,13 +195,16 @@ async function fetchBoards() {
     }
 
     boardsData = await response.json();
-    filteredBoards = [...boardsData];
 
     // Add task count to each board (if not provided by backend)
     boardsData = boardsData.map((board) => ({
       ...board,
-      taskCount: board.tasks?.length || 0,
+      taskCount: Array.isArray(board.tasks)
+        ? board.tasks.length
+        : board.taskCount || 0,
     }));
+
+    filteredBoards = [...boardsData];
 
     renderBoards(filteredBoards);
   } catch (error) {
@@ -225,15 +228,18 @@ function renderBoards(data) {
   document.querySelector(".desktop-table").style.display = "block";
   boardsMobileCards.style.display = "block";
 
-  // Desktop Table
+  // Clear previous boards to avoid duplicates
   boardsTableBody.innerHTML = "";
+  boardsMobileCards.innerHTML = "";
+
+  // Desktop Table
   data.forEach((board) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="board-name">${escapeHtml(board.title)}</td>
       <td class="board-description">${escapeHtml(board.description || "")}</td>
       <td class="board-date">${formatDate(board.created_at)}</td>
-      <td><span class="task-count-badge">${board.taskCount || 0}</span></td>
+      <td><span class="task-count-badge">${board.taskCount}</span></td>
       <td>
         <div class="action-buttons-group">
           <button class="action-btn edit-btn" title="Edit Board">
@@ -271,14 +277,13 @@ function renderBoards(data) {
   });
 
   // Mobile Cards
-  boardsMobileCards.innerHTML = "";
   data.forEach((board) => {
     const card = document.createElement("div");
     card.className = "board-mobile-card";
     card.innerHTML = `
       <div class="card-header">
         <h4 class="card-title">${escapeHtml(board.title)}</h4>
-        <span class="task-count-badge">${board.taskCount || 0}</span>
+        <span class="task-count-badge">${board.taskCount}</span>
       </div>
       <div class="card-body">
         <p class="card-description">${escapeHtml(board.description || "")}</p>
@@ -321,7 +326,6 @@ function renderBoards(data) {
     boardsMobileCards.appendChild(card);
   });
 }
-
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;

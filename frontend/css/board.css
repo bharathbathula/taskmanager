@@ -954,20 +954,23 @@ body::before {
     visibility: visible;
   }
 }
-/* Show table only on large screens */
-.desktop-table {
-  display: block;
-}
 
-.mobile-cards {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .desktop-table {
-    display: none;
+@media (max-width: 480px) {
+  .topbar h2 {
+    font-size: 1.25rem;
   }
-  .mobile-cards {
-    display: block;
+  .action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .search-container {
+    max-width: 100%;
+    width: 100%;
+  }
+  .action-buttons {
+    width: 100%;
+    justify-content: space-between;
   }
 }
+/* -------------------- End of File -------------------- */
