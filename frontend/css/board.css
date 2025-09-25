@@ -973,4 +973,14 @@ body::before {
     justify-content: space-between;
   }
 }
+
+@media (max-width: 768px) {
+  .mobile-cards {
+    display: flex !important;
+  }
+  .desktop-table {
+    display: none !important;
+  }
+}
+
 /* -------------------- End of File -------------------- */

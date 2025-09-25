@@ -79,8 +79,8 @@ function setupEventListeners() {
   boardModalCancel.addEventListener("click", () => closeModal(boardModal));
   boardModalSave.addEventListener("click", handleBoardSave);
 
-  // Search
-  // (Removed duplicate search event listener)
+  // Search with debounce
+  searchInput.addEventListener("input", debounce(handleSearch, 300));
 
   // Logout
   logoutBtn.addEventListener("click", logout);
@@ -109,10 +109,11 @@ function handleKeyboardShortcuts(e) {
         e.preventDefault();
         searchInput.focus();
         break;
-      case "Escape":
-        closeModal(boardModal);
-        break;
     }
+  }
+
+  if (e.key === "Escape") {
+    closeModal(boardModal);
   }
 }
 
@@ -144,15 +145,9 @@ function parseJwt(token) {
 function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.style.cssText = `
-    padding: 1rem; margin-bottom: 0.5rem; border-radius: 0.5rem;
-    background: ${
-      type === "error" ? "#e74c3c" : type === "success" ? "#27ae60" : "#3498db"
-    };
-    color: white; animation: slideIn 0.3s ease-out;
-  `;
   toast.textContent = message;
   toastContainer.appendChild(toast);
+
   setTimeout(() => {
     toast.style.animation = "slideOut 0.3s ease-in";
     setTimeout(() => toast.remove(), 300);
@@ -205,7 +200,6 @@ async function fetchBoards() {
     }));
 
     filteredBoards = [...boardsData];
-
     renderBoards(filteredBoards);
   } catch (error) {
     console.error("Fetch boards error:", error);
@@ -214,8 +208,12 @@ async function fetchBoards() {
   }
 }
 
-// Render boards (table + mobile cards)
+// Render boards (FIXED - no more duplicates)
 function renderBoards(data) {
+  // Clear previous content first
+  boardsTableBody.innerHTML = "";
+  boardsMobileCards.innerHTML = "";
+
   // Empty state
   if (data.length === 0) {
     emptyState.style.display = "block";
@@ -225,14 +223,24 @@ function renderBoards(data) {
   }
 
   emptyState.style.display = "none";
-  document.querySelector(".desktop-table").style.display = "block";
-  boardsMobileCards.style.display = "block";
 
-  // Clear previous boards to avoid duplicates
-  boardsTableBody.innerHTML = "";
-  boardsMobileCards.innerHTML = "";
+  // Check if we're on mobile view
+  const isMobile = window.innerWidth <= 768;
 
-  // Desktop Table
+  if (isMobile) {
+    // Mobile view - show cards only
+    document.querySelector(".desktop-table").style.display = "none";
+    boardsMobileCards.style.display = "flex";
+    renderMobileCards(data);
+  } else {
+    // Desktop view - show table only
+    document.querySelector(".desktop-table").style.display = "block";
+    boardsMobileCards.style.display = "none";
+    renderDesktopTable(data);
+  }
+}
+
+function renderDesktopTable(data) {
   data.forEach((board) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -275,8 +283,9 @@ function renderBoards(data) {
 
     boardsTableBody.appendChild(tr);
   });
+}
 
-  // Mobile Cards
+function renderMobileCards(data) {
   data.forEach((board) => {
     const card = document.createElement("div");
     card.className = "board-mobile-card";
@@ -326,7 +335,9 @@ function renderBoards(data) {
     boardsMobileCards.appendChild(card);
   });
 }
+
 function escapeHtml(text) {
+  if (!text) return "";
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
@@ -462,8 +473,6 @@ async function handleBoardSave() {
       throw new Error(`Failed to save board: ${response.status}`);
     }
 
-    const savedBoard = await response.json();
-
     showToast(
       editingBoardId
         ? "Board updated successfully"
@@ -511,7 +520,7 @@ async function handleDeleteBoard(board) {
 
 // -------------------- Search -------------------- //
 function handleSearch() {
-  const searchTerm = searchInput.value.toLowerCase();
+  const searchTerm = searchInput.value.toLowerCase().trim();
 
   if (!searchTerm) {
     filteredBoards = [...boardsData];
@@ -540,5 +549,10 @@ function debounce(func, wait) {
   };
 }
 
-// Use debounced search
-searchInput.addEventListener("input", debounce(handleSearch, 300));
+// Handle window resize to switch between table and cards
+window.addEventListener(
+  "resize",
+  debounce(() => {
+    renderBoards(filteredBoards);
+  }, 250)
+);
