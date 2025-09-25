@@ -954,3 +954,20 @@ body::before {
     visibility: visible;
   }
 }
+/* Show table only on large screens */
+.desktop-table {
+  display: block;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-table {
+    display: none;
+  }
+  .mobile-cards {
+    display: block;
+  }
+}
