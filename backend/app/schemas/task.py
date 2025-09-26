@@ -1,29 +1,36 @@
-# schemas/task.py - Updated for Pydantic v2
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from typing import Optional, List
 from datetime import datetime
-from typing import Optional
 
 class TaskBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(default="", max_length=1000)
-    status: str = Field(default="To Do", pattern="^(To Do|In Progress|Done)$")
-    priority: Optional[str] = Field(default="Medium", pattern="^(High|Medium|Low)?$")
+    title: str
+    description: Optional[str] = "No description provided"
+    status: Optional[str] = "To Do"
+    priority: Optional[str] = "Medium"
     due_date: Optional[datetime] = None
+    
 
 class TaskCreate(TaskBase):
     pass
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    status: Optional[str] = Field(None, pattern="^(To Do|In Progress|Done)$")
-    priority: Optional[str] = Field(None, pattern="^(High|Medium|Low)?$")
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
     due_date: Optional[datetime] = None
 
 class TaskOut(TaskBase):
     id: int
-    board_id: int
     created_at: datetime
+    board_id: int
+
+    class Config:
+        from_attributes = True
+
+class TaskList(BaseModel):
+    tasks: List[TaskOut] = []
+    total: int
 
     class Config:
         from_attributes = True
