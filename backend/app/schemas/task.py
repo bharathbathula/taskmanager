@@ -1,4 +1,4 @@
-# schemas/task.py - Updated schemas
+# schemas/task.py - Updated for Pydantic v2
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
@@ -6,8 +6,8 @@ from typing import Optional
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(default="", max_length=1000)
-    status: str = Field(default="To Do", regex="^(To Do|In Progress|Done)$")
-    priority: Optional[str] = Field(default="Medium", regex="^(High|Medium|Low)?$")
+    status: str = Field(default="To Do", pattern="^(To Do|In Progress|Done)$")
+    priority: Optional[str] = Field(default="Medium", pattern="^(High|Medium|Low)?$")
     due_date: Optional[datetime] = None
 
 class TaskCreate(TaskBase):
@@ -16,14 +16,14 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
-    status: Optional[str] = Field(None, regex="^(To Do|In Progress|Done)$")
-    priority: Optional[str] = Field(None, regex="^(High|Medium|Low)?$")
+    status: Optional[str] = Field(None, pattern="^(To Do|In Progress|Done)$")
+    priority: Optional[str] = Field(None, pattern="^(High|Medium|Low)?$")
     due_date: Optional[datetime] = None
 
 class TaskOut(TaskBase):
     id: int
     board_id: int
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
