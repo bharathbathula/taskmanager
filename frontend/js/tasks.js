@@ -101,8 +101,15 @@ async function initializeApp() {
       currentBoardId = allBoards[0].id;
     }
 
+    // Populate filters and selects after boards are fetched
+    populateBoardFilters();
+    populateBoardSelect();
+
     if (currentBoardId) {
       await fetchTasks();
+    } else {
+      // If no current board, fetch all tasks
+      await fetchAllTasks();
     }
 
     setupEventListeners();
@@ -299,26 +306,38 @@ async function fetchUser() {
   }
 }
 
-// Fetch boards
+// Fetch boards - FIXED: Better error handling and logging
 async function fetchBoards() {
   try {
     const response = await fetch(`${API_BASE}/boards`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error("Failed to fetch boards");
-    allBoards = await response.json();
-    populateBoardFilters();
-    populateBoardSelect();
+    const data = await response.json();
+
+    // Ensure we have an array of boards
+    allBoards = Array.isArray(data) ? data : [];
+    console.log("Fetched boards:", allBoards); // Debug log
+
+    if (allBoards.length === 0) {
+      console.warn("No boards found");
+      showError("No boards found. Please create a board first.");
+    }
   } catch (error) {
     console.error("Error fetching boards:", error);
     showError("Unable to fetch boards");
+    allBoards = [];
   }
 }
 
+// FIXED: Populate board filters after boards are fetched
 function populateBoardFilters() {
   if (!boardFilter) return;
 
+  console.log("Populating board filters with:", allBoards); // Debug log
+
   boardFilter.innerHTML = `<option value="">All Boards</option>`;
+
   allBoards.forEach((board) => {
     const opt = document.createElement("option");
     opt.value = board.id;
@@ -330,10 +349,22 @@ function populateBoardFilters() {
   });
 }
 
+// FIXED: Populate board select in task modal
 function populateBoardSelect() {
   if (!taskBoardInput) return;
 
+  console.log("Populating board select with:", allBoards); // Debug log
+
   taskBoardInput.innerHTML = "";
+
+  if (allBoards.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No boards available";
+    taskBoardInput.appendChild(opt);
+    return;
+  }
+
   allBoards.forEach((board) => {
     const opt = document.createElement("option");
     opt.value = board.id;
@@ -345,7 +376,7 @@ function populateBoardSelect() {
   });
 }
 
-// Fetch tasks
+// FIXED: Fetch tasks with proper board name mapping
 async function fetchTasks() {
   if (!currentBoardId) {
     allTasks = [];
@@ -359,36 +390,90 @@ async function fetchTasks() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error("Failed to fetch tasks");
-    allTasks = await response.json();
+    const tasks = await response.json();
 
-    // Add board name to tasks for display
+    // Find the current board to get its name
     const currentBoard = allBoards.find((b) => b.id === currentBoardId);
-    allTasks = allTasks.map((task) => ({
+    console.log("Current board:", currentBoard); // Debug log
+    console.log("Fetched tasks:", tasks); // Debug log
+
+    // Add board information to tasks
+    allTasks = tasks.map((task) => ({
       ...task,
-      boardName: currentBoard ? currentBoard.name : "Unknown Board",
+      boardName: currentBoard ? currentBoard.name : `Board ${currentBoardId}`,
       boardId: currentBoardId,
     }));
+
+    console.log("Tasks with board info:", allTasks); // Debug log
 
     filteredTasks = [...allTasks];
     renderTasks();
   } catch (error) {
     console.error("Error fetching tasks:", error);
     showError("Unable to fetch tasks");
+    allTasks = [];
+    filteredTasks = [];
+    renderTasks();
+  }
+}
+
+// FIXED: Fetch all tasks with proper board name mapping
+async function fetchAllTasks() {
+  try {
+    let allTasksFromAllBoards = [];
+
+    for (const board of allBoards) {
+      try {
+        const response = await fetch(`${API_BASE}/boards/${board.id}/tasks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const boardTasks = await response.json();
+          const tasksWithBoardInfo = boardTasks.map((task) => ({
+            ...task,
+            boardName: board.name,
+            boardId: board.id,
+          }));
+          allTasksFromAllBoards = [
+            ...allTasksFromAllBoards,
+            ...tasksWithBoardInfo,
+          ];
+        }
+      } catch (error) {
+        console.error(`Error fetching tasks for board ${board.id}:`, error);
+      }
+    }
+
+    allTasks = allTasksFromAllBoards;
+    filteredTasks = [...allTasks];
+    console.log("All tasks from all boards:", allTasks); // Debug log
+    renderTasks();
+  } catch (error) {
+    console.error("Error fetching all tasks:", error);
+    showError("Unable to fetch tasks from all boards");
   }
 }
 
 // Format date for display
 function formatDate(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
-  return date.toLocaleDateString();
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  } catch (error) {
+    return "";
+  }
 }
 
 // Format date for input
 function formatDateForInput(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
-  return date.toISOString().split("T")[0];
+  try {
+    const date = new Date(dateString);
+    return date.toISOString().split("T")[0];
+  } catch (error) {
+    return "";
+  }
 }
 
 // Render tasks
@@ -400,7 +485,7 @@ function renderTasks() {
   updateBulkActionsVisibility();
 }
 
-// Render tasks table
+// FIXED: Render tasks table with better board name handling
 function renderTasksTable() {
   if (!tasksTableBody) return;
 
@@ -434,17 +519,21 @@ function renderTasksTable() {
         </span>
       </td>
       <td>
-        <span class="board-badge">${task.boardName || "Unknown"}</span>
+        <span class="board-badge">${task.boardName || "Unknown Board"}</span>
       </td>
       <td>
         <span class="due-date">${formatDate(task.due_date)}</span>
       </td>
       <td>
         <div class="table-actions">
-          <button class="action-btn-sm action-btn-edit" data-id="${task.id}">
+          <button class="action-btn-sm action-btn-edit" data-id="${
+            task.id
+          }" data-board-id="${task.boardId}">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="action-btn-sm action-btn-delete" data-id="${task.id}">
+          <button class="action-btn-sm action-btn-delete" data-id="${
+            task.id
+          }" data-board-id="${task.boardId}">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -471,7 +560,7 @@ function renderTasksTable() {
   );
 }
 
-// Render mobile cards
+// FIXED: Render mobile cards with better board name handling
 function renderTasksCards() {
   if (!tasksCardsContainer) return;
 
@@ -510,7 +599,7 @@ function renderTasksCards() {
         </div>
         <div class="card-row">
           <span class="card-label">Board:</span>
-          <span class="board-badge">${task.boardName || "Unknown"}</span>
+          <span class="board-badge">${task.boardName || "Unknown Board"}</span>
         </div>
         <div class="card-row">
           <span class="card-label">Due Date:</span>
@@ -519,10 +608,14 @@ function renderTasksCards() {
       </div>
       <div class="card-footer">
         <div class="card-actions">
-          <button class="action-btn-sm action-btn-edit" data-id="${task.id}">
+          <button class="action-btn-sm action-btn-edit" data-id="${
+            task.id
+          }" data-board-id="${task.boardId}">
             <i class="fas fa-edit"></i> Edit
           </button>
-          <button class="action-btn-sm action-btn-delete" data-id="${task.id}">
+          <button class="action-btn-sm action-btn-delete" data-id="${
+            task.id
+          }" data-board-id="${task.boardId}">
             <i class="fas fa-trash"></i> Delete
           </button>
         </div>
@@ -605,48 +698,23 @@ function handleFilterChange() {
   applyFilters();
 }
 
-function handleBoardFilterChange() {
+// FIXED: Board filter change handler
+async function handleBoardFilterChange() {
   const selectedBoardId = boardFilter.value;
-  if (selectedBoardId && selectedBoardId !== currentBoardId.toString()) {
+
+  console.log("Board filter changed to:", selectedBoardId); // Debug log
+
+  if (selectedBoardId && selectedBoardId !== currentBoardId?.toString()) {
+    // Switch to specific board
     currentBoardId = parseInt(selectedBoardId);
-    fetchTasks();
+    await fetchTasks();
   } else if (!selectedBoardId) {
     // Show all tasks from all boards
     currentBoardId = null;
-    fetchAllTasks();
+    await fetchAllTasks();
   } else {
+    // Same board, just apply filters
     applyFilters();
-  }
-}
-
-async function fetchAllTasks() {
-  try {
-    let allTasksFromAllBoards = [];
-
-    for (const board of allBoards) {
-      const response = await fetch(`${API_BASE}/boards/${board.id}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const boardTasks = await response.json();
-        const tasksWithBoardInfo = boardTasks.map((task) => ({
-          ...task,
-          boardName: board.name,
-          boardId: board.id,
-        }));
-        allTasksFromAllBoards = [
-          ...allTasksFromAllBoards,
-          ...tasksWithBoardInfo,
-        ];
-      }
-    }
-
-    allTasks = allTasksFromAllBoards;
-    filteredTasks = [...allTasks];
-    renderTasks();
-  } catch (error) {
-    console.error("Error fetching all tasks:", error);
-    showError("Unable to fetch tasks from all boards");
   }
 }
 
@@ -696,9 +764,17 @@ function openAddTaskModal() {
   editingTaskId = null;
   if (taskModalTitle) taskModalTitle.textContent = "Add Task";
   if (taskForm) taskForm.reset();
+
+  // Refresh board select in case boards were updated
+  populateBoardSelect();
+
+  // Set default board
   if (taskBoardInput && currentBoardId) {
     taskBoardInput.value = currentBoardId;
+  } else if (taskBoardInput && allBoards.length > 0) {
+    taskBoardInput.value = allBoards[0].id;
   }
+
   if (taskModal) taskModal.classList.add("show");
 }
 
@@ -711,6 +787,9 @@ function openEditTaskModal(id) {
 
   editingTaskId = id;
   if (taskModalTitle) taskModalTitle.textContent = "Edit Task";
+
+  // Refresh board select
+  populateBoardSelect();
 
   if (taskTitleInput) taskTitleInput.value = task.title || "";
   if (taskDescInput) taskDescInput.value = task.description || "";
@@ -742,7 +821,7 @@ async function handleTaskSubmit(e) {
     return;
   }
 
-  const selectedBoardId = taskBoardInput?.value || currentBoardId;
+  const selectedBoardId = parseInt(taskBoardInput?.value);
   if (!selectedBoardId) {
     showError("Please select a board");
     return;
@@ -768,7 +847,14 @@ async function handleTaskSubmit(e) {
     }
 
     closeTaskModal();
-    await fetchTasks();
+
+    // Refresh tasks based on current view
+    if (currentBoardId) {
+      await fetchTasks();
+    } else {
+      await fetchAllTasks();
+    }
+
     hideLoading();
   } catch (error) {
     console.error("Error saving task:", error);
@@ -840,7 +926,14 @@ async function handleDeleteTask(id) {
     }
 
     showSuccess("Task deleted successfully");
-    await fetchTasks();
+
+    // Refresh tasks based on current view
+    if (currentBoardId) {
+      await fetchTasks();
+    } else {
+      await fetchAllTasks();
+    }
+
     hideLoading();
   } catch (error) {
     console.error("Error deleting task:", error);
@@ -953,7 +1046,14 @@ async function handleBulkStatusSubmit(e) {
     showSuccess(`Updated ${selectedTasks.size} tasks`);
     closeBulkStatusModal();
     clearTaskSelection();
-    await fetchTasks();
+
+    // Refresh tasks based on current view
+    if (currentBoardId) {
+      await fetchTasks();
+    } else {
+      await fetchAllTasks();
+    }
+
     hideLoading();
   } catch (error) {
     console.error("Error updating tasks:", error);
@@ -998,7 +1098,14 @@ async function handleBulkDelete() {
 
     showSuccess(`Deleted ${selectedTasks.size} tasks`);
     clearTaskSelection();
-    await fetchTasks();
+
+    // Refresh tasks based on current view
+    if (currentBoardId) {
+      await fetchTasks();
+    } else {
+      await fetchAllTasks();
+    }
+
     hideLoading();
   } catch (error) {
     console.error("Error deleting tasks:", error);
