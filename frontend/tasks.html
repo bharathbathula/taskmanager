@@ -56,7 +56,10 @@
       <!-- Top Bar -->
       <div class="topbar">
         <div>
-          <h2><i class="fas fa-list-check"></i> Tasks Management</h2>
+          <h2>
+            <i class="fas fa-list-check"></i>
+            <span id="boardTitle">Tasks Management</span>
+          </h2>
           <p class="text-secondary">Manage and track all your tasks</p>
         </div>
         <div class="user-info">
@@ -131,10 +134,6 @@
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
-
-          <select id="boardFilter" class="filter-select">
-            <option value="">All Boards</option>
-          </select>
         </div>
 
         <div class="action-controls">
@@ -190,7 +189,6 @@
               <th>Task</th>
               <th>Status</th>
               <th>Priority</th>
-              <th>Board</th>
               <th>Due Date</th>
               <th>Actions</th>
             </tr>
@@ -280,22 +278,9 @@
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Board *</label>
-                <select
-                  id="taskBoardInput"
-                  class="form-input form-select"
-                  required
-                >
-                  <!-- Boards will be populated here -->
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Due Date</label>
-                <input type="date" id="taskDueDateInput" class="form-input" />
-              </div>
+            <div class="form-group">
+              <label class="form-label">Due Date</label>
+              <input type="date" id="taskDueDateInput" class="form-input" />
             </div>
           </div>
 
