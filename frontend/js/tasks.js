@@ -73,6 +73,8 @@ const API_BASE = "https://taskmanager-tj4l.onrender.com";
 
 // Initialize application
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Application starting...");
+
   if (!token) {
     alert("No authentication token found. Please login.");
     window.location.href = "index.html";
@@ -84,6 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const boardIdFromUrl = urlParams.get("boardId");
   if (boardIdFromUrl) {
     currentBoardId = parseInt(boardIdFromUrl);
+    console.log("Board ID from URL:", currentBoardId);
   }
 
   await initializeApp();
@@ -93,37 +96,52 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initializeApp() {
   try {
     showLoading();
+
+    console.log("Fetching user...");
     await fetchUser();
+
+    console.log("Fetching boards...");
     await fetchBoards();
 
-    // If no board ID from URL, use the first available board
+    console.log("All boards fetched:", allBoards);
+
+    // If no board ID from URL and we have boards, use the first one
     if (!currentBoardId && allBoards.length > 0) {
       currentBoardId = allBoards[0].id;
+      console.log("Using first board as default:", currentBoardId);
     }
 
-    // Populate filters and selects after boards are fetched
+    // Always populate dropdowns after boards are fetched
+    console.log("Populating dropdowns...");
     populateBoardFilters();
     populateBoardSelect();
 
+    // Fetch tasks based on current board or all boards
     if (currentBoardId) {
+      console.log("Fetching tasks for board:", currentBoardId);
       await fetchTasks();
     } else {
-      // If no current board, fetch all tasks
+      console.log("Fetching all tasks...");
       await fetchAllTasks();
     }
 
     setupEventListeners();
     hideLoading();
+
+    console.log("App initialization complete");
   } catch (error) {
     console.error("Failed to initialize app:", error);
     hideLoading();
-    showError("Failed to load application data");
+    showError("Failed to load application data: " + error.message);
   }
 }
 
 // Show loading state
 function showLoading() {
-  const loadingOverlay = document.createElement("div");
+  let loadingOverlay = document.getElementById("loadingOverlay");
+  if (loadingOverlay) return; // Already showing
+
+  loadingOverlay = document.createElement("div");
   loadingOverlay.className = "loading-overlay";
   loadingOverlay.id = "loadingOverlay";
   loadingOverlay.innerHTML = `
@@ -141,6 +159,7 @@ function hideLoading() {
 
 // Show error
 function showError(message) {
+  console.error("Error:", message);
   const errorDiv = document.createElement("div");
   errorDiv.className = "error-message";
   errorDiv.style.cssText = `
@@ -153,6 +172,7 @@ function showError(message) {
     border-radius: 0.5rem;
     z-index: 3000;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    max-width: 300px;
   `;
   errorDiv.innerHTML = `
     <i class="fas fa-exclamation-circle"></i> ${message} 
@@ -162,11 +182,12 @@ function showError(message) {
     </button>
   `;
   document.body.appendChild(errorDiv);
-  setTimeout(() => errorDiv.remove(), 5000);
+  setTimeout(() => errorDiv.remove(), 8000);
 }
 
 // Show success message
 function showSuccess(message) {
+  console.log("Success:", message);
   const successDiv = document.createElement("div");
   successDiv.className = "success-message";
   successDiv.style.cssText = `
@@ -283,6 +304,7 @@ function parseJwt(token) {
   try {
     return JSON.parse(atob(token.split(".")[1]));
   } catch (e) {
+    console.error("Failed to parse JWT:", e);
     return null;
   }
 }
@@ -293,8 +315,14 @@ async function fetchUser() {
     const response = await fetch(`${API_BASE}/users/${payload.user_id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!response.ok) throw new Error("Failed to fetch user");
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: Failed to fetch user`);
+    }
+
     const data = await response.json();
+    console.log("User data:", data);
+
     if (userEmail) {
       userEmail.textContent = `Welcome, ${
         data.name || data.username || data.email || "User"
@@ -306,79 +334,179 @@ async function fetchUser() {
   }
 }
 
-// Fetch boards - FIXED: Better error handling and logging
+// FIXED: Fetch boards with better error handling and validation
 async function fetchBoards() {
   try {
+    console.log("Making request to fetch boards...");
     const response = await fetch(`${API_BASE}/boards`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
-    if (!response.ok) throw new Error("Failed to fetch boards");
-    const data = await response.json();
 
-    // Ensure we have an array of boards
-    allBoards = Array.isArray(data) ? data : [];
-    console.log("Fetched boards:", allBoards); // Debug log
+    console.log("Boards response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Boards fetch error:", errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Raw boards data from API:", data);
+
+    // Handle different possible response formats
+    if (Array.isArray(data)) {
+      allBoards = data;
+    } else if (data.boards && Array.isArray(data.boards)) {
+      allBoards = data.boards;
+    } else if (data.data && Array.isArray(data.data)) {
+      allBoards = data.data;
+    } else {
+      console.error("Unexpected boards data format:", data);
+      allBoards = [];
+    }
+
+    console.log("Processed boards:", allBoards);
 
     if (allBoards.length === 0) {
-      console.warn("No boards found");
-      showError("No boards found. Please create a board first.");
+      console.warn("No boards found in response");
+      showError("No boards available. Please create a board first.");
+      return;
     }
+
+    // Validate board structure
+    allBoards.forEach((board, index) => {
+      if (!board.id || !board.name) {
+        console.warn(`Invalid board at index ${index}:`, board);
+      }
+    });
   } catch (error) {
-    console.error("Error fetching boards:", error);
-    showError("Unable to fetch boards");
+    console.error("Critical error fetching boards:", error);
     allBoards = [];
+    showError("Unable to fetch boards: " + error.message);
   }
 }
 
-// FIXED: Populate board filters after boards are fetched
+// FIXED: Populate board filters with proper error handling
 function populateBoardFilters() {
-  if (!boardFilter) return;
+  console.log("Populating board filters...", allBoards);
 
-  console.log("Populating board filters with:", allBoards); // Debug log
-
-  boardFilter.innerHTML = `<option value="">All Boards</option>`;
-
-  allBoards.forEach((board) => {
-    const opt = document.createElement("option");
-    opt.value = board.id;
-    opt.textContent = board.name;
-    if (board.id === currentBoardId) {
-      opt.selected = true;
-    }
-    boardFilter.appendChild(opt);
-  });
-}
-
-// FIXED: Populate board select in task modal
-function populateBoardSelect() {
-  if (!taskBoardInput) return;
-
-  console.log("Populating board select with:", allBoards); // Debug log
-
-  taskBoardInput.innerHTML = "";
-
-  if (allBoards.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "No boards available";
-    taskBoardInput.appendChild(opt);
+  if (!boardFilter) {
+    console.error("Board filter element not found");
     return;
   }
 
+  // Clear existing options
+  boardFilter.innerHTML = "";
+
+  // Add "All Boards" option
+  const allOption = document.createElement("option");
+  allOption.value = "";
+  allOption.textContent = "All Boards";
+  boardFilter.appendChild(allOption);
+
+  if (allBoards.length === 0) {
+    console.warn("No boards to populate in filter");
+    const noBoards = document.createElement("option");
+    noBoards.value = "";
+    noBoards.textContent = "No boards available";
+    noBoards.disabled = true;
+    boardFilter.appendChild(noBoards);
+    return;
+  }
+
+  // Add board options
   allBoards.forEach((board) => {
-    const opt = document.createElement("option");
-    opt.value = board.id;
-    opt.textContent = board.name;
-    if (board.id === currentBoardId) {
-      opt.selected = true;
+    if (board && board.id && board.name) {
+      const option = document.createElement("option");
+      option.value = board.id.toString();
+      option.textContent = board.name;
+      if (board.id === currentBoardId) {
+        option.selected = true;
+      }
+      boardFilter.appendChild(option);
+      console.log(`Added board filter option: ${board.name} (ID: ${board.id})`);
+    } else {
+      console.warn("Skipping invalid board:", board);
     }
-    taskBoardInput.appendChild(opt);
   });
+
+  console.log(
+    "Board filter populated with",
+    boardFilter.options.length,
+    "options"
+  );
 }
 
-// FIXED: Fetch tasks with proper board name mapping
+// FIXED: Populate board select in modal with proper error handling
+function populateBoardSelect() {
+  console.log("Populating board select...", allBoards);
+
+  if (!taskBoardInput) {
+    console.error("Task board input element not found");
+    return;
+  }
+
+  // Clear existing options
+  taskBoardInput.innerHTML = "";
+
+  if (allBoards.length === 0) {
+    console.warn("No boards to populate in select");
+    const noBoards = document.createElement("option");
+    noBoards.value = "";
+    noBoards.textContent = "No boards available";
+    noBoards.disabled = true;
+    taskBoardInput.appendChild(noBoards);
+    return;
+  }
+
+  // Add board options
+  allBoards.forEach((board) => {
+    if (board && board.id && board.name) {
+      const option = document.createElement("option");
+      option.value = board.id.toString();
+      option.textContent = board.name;
+      if (board.id === currentBoardId) {
+        option.selected = true;
+      }
+      taskBoardInput.appendChild(option);
+      console.log(`Added board select option: ${board.name} (ID: ${board.id})`);
+    } else {
+      console.warn("Skipping invalid board:", board);
+    }
+  });
+
+  console.log(
+    "Board select populated with",
+    taskBoardInput.options.length,
+    "options"
+  );
+}
+
+// FIXED: Get board name by ID with fallback
+function getBoardNameById(boardId) {
+  if (!boardId) return "Unknown Board";
+
+  const board = allBoards.find((b) => b && b.id === parseInt(boardId));
+  if (board && board.name) {
+    return board.name;
+  }
+
+  console.warn(
+    `Board not found for ID: ${boardId}. Available boards:`,
+    allBoards
+  );
+  return `Board ${boardId}`;
+}
+
+// FIXED: Fetch tasks with proper board name assignment
 async function fetchTasks() {
+  console.log("Fetching tasks for board:", currentBoardId);
+
   if (!currentBoardId) {
+    console.log("No current board ID, clearing tasks");
     allTasks = [];
     filteredTasks = [];
     renderTasks();
@@ -386,31 +514,44 @@ async function fetchTasks() {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/boards/${currentBoardId}/tasks`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const url = `${API_BASE}/boards/${currentBoardId}/tasks`;
+    console.log("Fetching from URL:", url);
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
-    if (!response.ok) throw new Error("Failed to fetch tasks");
+
+    console.log("Tasks response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Tasks fetch error:", errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
     const tasks = await response.json();
+    console.log("Raw tasks data:", tasks);
 
-    // Find the current board to get its name
-    const currentBoard = allBoards.find((b) => b.id === currentBoardId);
-    console.log("Current board:", currentBoard); // Debug log
-    console.log("Fetched tasks:", tasks); // Debug log
+    // Process tasks and add board information
+    const currentBoardName = getBoardNameById(currentBoardId);
+    console.log("Current board name:", currentBoardName);
 
-    // Add board information to tasks
-    allTasks = tasks.map((task) => ({
+    allTasks = (Array.isArray(tasks) ? tasks : []).map((task) => ({
       ...task,
-      boardName: currentBoard ? currentBoard.name : `Board ${currentBoardId}`,
+      boardName: currentBoardName,
       boardId: currentBoardId,
     }));
 
-    console.log("Tasks with board info:", allTasks); // Debug log
+    console.log("Processed tasks with board info:", allTasks);
 
     filteredTasks = [...allTasks];
     renderTasks();
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    showError("Unable to fetch tasks");
+    showError("Unable to fetch tasks: " + error.message);
     allTasks = [];
     filteredTasks = [];
     renderTasks();
@@ -419,25 +560,58 @@ async function fetchTasks() {
 
 // FIXED: Fetch all tasks with proper board name mapping
 async function fetchAllTasks() {
+  console.log("Fetching all tasks from all boards...");
+
+  if (allBoards.length === 0) {
+    console.warn("No boards available to fetch tasks from");
+    allTasks = [];
+    filteredTasks = [];
+    renderTasks();
+    return;
+  }
+
   try {
     let allTasksFromAllBoards = [];
 
     for (const board of allBoards) {
+      if (!board || !board.id) {
+        console.warn("Skipping invalid board:", board);
+        continue;
+      }
+
       try {
+        console.log(
+          `Fetching tasks for board: ${board.name} (ID: ${board.id})`
+        );
+
         const response = await fetch(`${API_BASE}/boards/${board.id}/tasks`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
+
         if (response.ok) {
           const boardTasks = await response.json();
-          const tasksWithBoardInfo = boardTasks.map((task) => ({
+          console.log(`Tasks for board ${board.name}:`, boardTasks);
+
+          const tasksWithBoardInfo = (
+            Array.isArray(boardTasks) ? boardTasks : []
+          ).map((task) => ({
             ...task,
             boardName: board.name,
             boardId: board.id,
           }));
+
           allTasksFromAllBoards = [
             ...allTasksFromAllBoards,
             ...tasksWithBoardInfo,
           ];
+        } else {
+          console.warn(
+            `Failed to fetch tasks for board ${board.id}:`,
+            response.status
+          );
         }
       } catch (error) {
         console.error(`Error fetching tasks for board ${board.id}:`, error);
@@ -446,11 +620,15 @@ async function fetchAllTasks() {
 
     allTasks = allTasksFromAllBoards;
     filteredTasks = [...allTasks];
-    console.log("All tasks from all boards:", allTasks); // Debug log
+
+    console.log("All tasks from all boards:", allTasks);
     renderTasks();
   } catch (error) {
     console.error("Error fetching all tasks:", error);
     showError("Unable to fetch tasks from all boards");
+    allTasks = [];
+    filteredTasks = [];
+    renderTasks();
   }
 }
 
@@ -461,6 +639,7 @@ function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   } catch (error) {
+    console.error("Date formatting error:", error);
     return "";
   }
 }
@@ -472,12 +651,14 @@ function formatDateForInput(dateString) {
     const date = new Date(dateString);
     return date.toISOString().split("T")[0];
   } catch (error) {
+    console.error("Date formatting error:", error);
     return "";
   }
 }
 
 // Render tasks
 function renderTasks() {
+  console.log("Rendering tasks:", filteredTasks);
   renderTasksTable();
   renderTasksCards();
   updateStats();
@@ -485,11 +666,12 @@ function renderTasks() {
   updateBulkActionsVisibility();
 }
 
-// FIXED: Render tasks table with better board name handling
+// Render tasks table
 function renderTasksTable() {
   if (!tasksTableBody) return;
 
   tasksTableBody.innerHTML = "";
+
   filteredTasks.forEach((task) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -560,11 +742,12 @@ function renderTasksTable() {
   );
 }
 
-// FIXED: Render mobile cards with better board name handling
+// Render mobile cards
 function renderTasksCards() {
   if (!tasksCardsContainer) return;
 
   tasksCardsContainer.innerHTML = "";
+
   filteredTasks.forEach((task) => {
     const card = document.createElement("div");
     card.className = "task-mobile-card";
@@ -698,23 +881,36 @@ function handleFilterChange() {
   applyFilters();
 }
 
-// FIXED: Board filter change handler
+// FIXED: Board filter change handler with proper async handling
 async function handleBoardFilterChange() {
   const selectedBoardId = boardFilter.value;
 
-  console.log("Board filter changed to:", selectedBoardId); // Debug log
+  console.log("Board filter changed to:", selectedBoardId);
 
-  if (selectedBoardId && selectedBoardId !== currentBoardId?.toString()) {
-    // Switch to specific board
-    currentBoardId = parseInt(selectedBoardId);
-    await fetchTasks();
-  } else if (!selectedBoardId) {
-    // Show all tasks from all boards
-    currentBoardId = null;
-    await fetchAllTasks();
-  } else {
-    // Same board, just apply filters
-    applyFilters();
+  try {
+    showLoading();
+
+    if (selectedBoardId && selectedBoardId !== currentBoardId?.toString()) {
+      // Switch to specific board
+      currentBoardId = parseInt(selectedBoardId);
+      console.log("Switching to board:", currentBoardId);
+      await fetchTasks();
+    } else if (!selectedBoardId) {
+      // Show all tasks from all boards
+      console.log("Showing all tasks from all boards");
+      currentBoardId = null;
+      await fetchAllTasks();
+    } else {
+      // Same board, just apply filters
+      console.log("Same board, applying filters");
+      applyFilters();
+    }
+
+    hideLoading();
+  } catch (error) {
+    console.error("Error changing board filter:", error);
+    hideLoading();
+    showError("Failed to switch boards");
   }
 }
 
@@ -724,6 +920,8 @@ function applyFilters() {
   const status = statusFilter?.value || "";
   const priority = priorityFilter?.value || "";
   const board = boardFilter?.value || "";
+
+  console.log("Applying filters:", { search, status, priority, board });
 
   filteredTasks = allTasks.filter((task) => {
     const matchesSearch =
@@ -738,6 +936,9 @@ function applyFilters() {
     return matchesSearch && matchesStatus && matchesPriority && matchesBoard;
   });
 
+  console.log(
+    `Filtered ${allTasks.length} tasks to ${filteredTasks.length} results`
+  );
   renderTasks();
 }
 
@@ -761,34 +962,40 @@ function toggleView(view) {
 
 // Task modal functions
 function openAddTaskModal() {
+  console.log("Opening add task modal");
   editingTaskId = null;
   if (taskModalTitle) taskModalTitle.textContent = "Add Task";
   if (taskForm) taskForm.reset();
 
-  // Refresh board select in case boards were updated
+  // Refresh board select to ensure it's up to date
   populateBoardSelect();
 
   // Set default board
-  if (taskBoardInput && currentBoardId) {
-    taskBoardInput.value = currentBoardId;
-  } else if (taskBoardInput && allBoards.length > 0) {
-    taskBoardInput.value = allBoards[0].id;
+  if (taskBoardInput) {
+    if (currentBoardId) {
+      taskBoardInput.value = currentBoardId.toString();
+    } else if (allBoards.length > 0) {
+      taskBoardInput.value = allBoards[0].id.toString();
+    }
   }
 
   if (taskModal) taskModal.classList.add("show");
 }
 
 function openEditTaskModal(id) {
+  console.log("Opening edit task modal for ID:", id);
   const task = allTasks.find((t) => t.id == id);
   if (!task) {
+    console.error("Task not found for ID:", id);
     showError("Task not found");
     return;
   }
 
+  console.log("Editing task:", task);
   editingTaskId = id;
   if (taskModalTitle) taskModalTitle.textContent = "Edit Task";
 
-  // Refresh board select
+  // Refresh board select to ensure it's up to date
   populateBoardSelect();
 
   if (taskTitleInput) taskTitleInput.value = task.title || "";
@@ -797,7 +1004,8 @@ function openEditTaskModal(id) {
   if (taskPriorityInput) taskPriorityInput.value = task.priority || "";
   if (taskDueDateInput)
     taskDueDateInput.value = formatDateForInput(task.due_date) || "";
-  if (taskBoardInput) taskBoardInput.value = task.boardId || currentBoardId;
+  if (taskBoardInput)
+    taskBoardInput.value = (task.boardId || currentBoardId)?.toString() || "";
 
   if (taskModal) taskModal.classList.add("show");
 }
@@ -815,6 +1023,7 @@ function closeAllModals() {
 // Task form submission
 async function handleTaskSubmit(e) {
   e.preventDefault();
+  console.log("Handling task submit");
 
   if (!taskTitleInput?.value.trim()) {
     showError("Task title is required");
@@ -822,8 +1031,8 @@ async function handleTaskSubmit(e) {
   }
 
   const selectedBoardId = parseInt(taskBoardInput?.value);
-  if (!selectedBoardId) {
-    showError("Please select a board");
+  if (!selectedBoardId || isNaN(selectedBoardId)) {
+    showError("Please select a valid board");
     return;
   }
 
@@ -835,13 +1044,17 @@ async function handleTaskSubmit(e) {
     due_date: taskDueDateInput?.value || null,
   };
 
+  console.log("Task data:", taskData, "Board ID:", selectedBoardId);
+
   try {
     showLoading();
 
     if (editingTaskId) {
+      console.log("Updating existing task:", editingTaskId);
       await updateTask(editingTaskId, taskData, selectedBoardId);
       showSuccess("Task updated successfully");
     } else {
+      console.log("Creating new task");
       await createTask(taskData, selectedBoardId);
       showSuccess("Task created successfully");
     }
@@ -859,12 +1072,13 @@ async function handleTaskSubmit(e) {
   } catch (error) {
     console.error("Error saving task:", error);
     hideLoading();
-    showError("Failed to save task");
+    showError("Failed to save task: " + error.message);
   }
 }
 
 // CRUD operations
 async function createTask(data, boardId) {
+  console.log("Creating task:", data, "for board:", boardId);
   const response = await fetch(`${API_BASE}/boards/${boardId}/tasks`, {
     method: "POST",
     headers: {
@@ -876,13 +1090,17 @@ async function createTask(data, boardId) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to create task");
+    console.error("Create task error:", errorData);
+    throw new Error(
+      errorData.detail || `HTTP ${response.status}: Failed to create task`
+    );
   }
 
   return await response.json();
 }
 
 async function updateTask(id, data, boardId) {
+  console.log("Updating task:", id, data, "for board:", boardId);
   const response = await fetch(`${API_BASE}/boards/${boardId}/tasks/${id}`, {
     method: "PUT",
     headers: {
@@ -894,7 +1112,10 @@ async function updateTask(id, data, boardId) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to update task");
+    console.error("Update task error:", errorData);
+    throw new Error(
+      errorData.detail || `HTTP ${response.status}: Failed to update task`
+    );
   }
 
   return await response.json();
@@ -909,6 +1130,8 @@ async function handleDeleteTask(id) {
     return;
   }
 
+  console.log("Deleting task:", id, "from board:", task.boardId);
+
   try {
     showLoading();
 
@@ -922,7 +1145,10 @@ async function handleDeleteTask(id) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || "Failed to delete task");
+      console.error("Delete task error:", errorData);
+      throw new Error(
+        errorData.detail || `HTTP ${response.status}: Failed to delete task`
+      );
     }
 
     showSuccess("Task deleted successfully");
@@ -938,7 +1164,7 @@ async function handleDeleteTask(id) {
   } catch (error) {
     console.error("Error deleting task:", error);
     hideLoading();
-    showError("Failed to delete task");
+    showError("Failed to delete task: " + error.message);
   }
 }
 
@@ -1033,6 +1259,13 @@ async function handleBulkStatusSubmit(e) {
     return;
   }
 
+  console.log(
+    "Bulk updating status to:",
+    newStatus,
+    "for tasks:",
+    selectedTasks
+  );
+
   try {
     showLoading();
 
@@ -1058,7 +1291,7 @@ async function handleBulkStatusSubmit(e) {
   } catch (error) {
     console.error("Error updating tasks:", error);
     hideLoading();
-    showError("Failed to update tasks");
+    showError("Failed to update tasks: " + error.message);
   }
 }
 
@@ -1075,6 +1308,8 @@ async function handleBulkDelete() {
   ) {
     return;
   }
+
+  console.log("Bulk deleting tasks:", selectedTasks);
 
   try {
     showLoading();
@@ -1110,7 +1345,7 @@ async function handleBulkDelete() {
   } catch (error) {
     console.error("Error deleting tasks:", error);
     hideLoading();
-    showError("Failed to delete tasks");
+    showError("Failed to delete tasks: " + error.message);
   }
 }
 

@@ -1458,3 +1458,115 @@ select:focus,
     border: 1px solid #000;
   }
 }
+
+.filter-select,
+.form-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
+}
+
+/* CRITICAL FIX: Make dropdown options visible */
+.filter-select option,
+.form-select option,
+select option {
+  background-color: white !important;
+  color: #2d3748 !important; /* Dark text */
+  padding: 8px 12px;
+  font-size: 14px;
+  border: none;
+}
+
+.filter-select option:hover,
+.form-select option:hover,
+select option:hover {
+  background-color: #f7fafc !important;
+  color: #2d3748 !important;
+}
+
+.filter-select option:checked,
+.form-select option:checked,
+select option:checked {
+  background-color: #8b5cf6 !important;
+  color: white !important;
+}
+
+/* Ensure select elements are properly styled */
+select {
+  background-color: white !important;
+  color: #2d3748 !important;
+}
+
+/* Fix for board filter specifically */
+#boardFilter {
+  background: white !important;
+  color: var(--text-primary) !important;
+}
+
+#boardFilter option {
+  background: white !important;
+  color: #2d3748 !important;
+  padding: 8px 12px;
+}
+
+/* Fix for task board input in modal */
+#taskBoardInput {
+  background: white !important;
+  color: var(--text-primary) !important;
+}
+
+#taskBoardInput option {
+  background: white !important;
+  color: #2d3748 !important;
+  padding: 8px 12px;
+}
+
+/* Fix for bulk status select */
+#bulkStatusSelect {
+  background: white !important;
+  color: var(--text-primary) !important;
+}
+
+#bulkStatusSelect option {
+  background: white !important;
+  color: #2d3748 !important;
+  padding: 8px 12px;
+}
+
+/* Additional fixes for all select elements */
+select,
+.form-select,
+.filter-select {
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  appearance: menulist;
+}
+
+/* Override any conflicting styles */
+.form-input[type="select"],
+.form-input.form-select,
+.filter-select {
+  background-color: white !important;
+  color: #2d3748 !important;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+  .filter-select,
+  .form-select {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .filter-select option,
+  .form-select option {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent zoom on mobile */
+  }
+}
